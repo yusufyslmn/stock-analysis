@@ -1,0 +1,276 @@
+---
+title: "Untitled"
+author: "Yusuf Yeşilmen"
+date: "2025-03-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lubridate) 
+library(xts)        
+library(quantmod)   
+library(zoo)       
+
+knitr::opts_chunk$set(echo = TRUE, warnings = FALSE)
+```
+
+```{r pressure, echo=FALSE}
+library(xts)
+library(quantmod)
+
+load("djdata.RData")
+
+colnames(djdata.df)
+colnames(djdata)
+
+plot(djdata[,5])
+
+symbols <- colnames(djdata)
+symbols
+symbols[-15]
+
+set.seed(20022025)
+sample(symbols[-15],16)
+
+set.seed(20022025)
+lst <- sample(symbols[-15], 16)
+
+lst[7]
+
+djdata[,7]
+djdata[,lst[7]]
+
+getSymbols(lst[7])
+
+plot(DIS)
+
+boxplot(DIS)
+
+#Prices are in a long-term uptrend.
+#There are large jumps in the volume chart at certain periods, indicating increased market activity.
+```
+```{r}
+head(DIS)
+
+tail(DIS)
+```
+```{r}
+plot(as.zoo(DIS))
+#DIS stock has been on an upward trend over the years, but volatility has increased in recent years.
+#Volume spikes indicate that the stock has been in high demand at certain times.
+```
+```{r}
+plot(DIS[,-5])
+#There is a long-term upward trend. Steady increase between 2010-2020, sharp decline in 2020 (probably due to the pandemic), then recovery
+```
+
+```{r}
+head(wday(index(DIS), label=F))
+```
+```{r}
+head(wday(index(DIS), label=T))
+```
+```{r}
+str(head(wday(index(DIS), label=T)))
+```
+```{r}
+is.factor(head(wday(index(DIS), label=T)))
+```
+```{r}
+paste(head(wday(index(DIS), label=T)))
+```
+```{r}
+yday(Sys.Date())
+```
+```{r}
+yday(index(first(DIS["200303"], "1 week")))
+```
+```{r}
+qday(Sys.Date())
+```
+```{r}
+head(qday(index(DIS)))
+```
+```{r}
+quarter(Sys.Date())
+```
+```{r}
+head(mday(index(DIS)))
+```
+```{r}
+head(month(index(DIS)))
+```
+```{r}
+head(month(index(to.monthly(DIS)), label=T))
+```
+```{r}
+paste(head(month(index(to.monthly(DIS)), label=T)))
+```
+```{r}
+last_weekday_o_month <- function(dx) {
+  ave( 
+  paste(wday(dx, label=T, abbr=F)), 
+  paste(month(dx, label=T, abbr = F)), 
+  FUN = function(x) tail(x[ !(x %in% c("Saturday","Sunday")) ], 1) 
+  ) 
+}
+
+last_weekdaydate_o_month <- function(dx){
+  ave( 
+    dx, 
+#     paste(month(dx, label=T, abbr = F)), 
+    month(dx, label=T),
+    year(dx),
+    FUN = function(x) tail(x[ !(wday(x, label=T, abbr=F) %in% c("Saturday","Sunday")) ], 1) 
+  )
+}  
+
+# Get the last 25 end of months weekdays Adjusted close value..
+
+Ad(DIS[tail(unique(last_weekdaydate_o_month(index(DIS))), 15),])
+```
+```{r}
+dis <- Ad(DIS)
+
+head(dis[wday(index(dis))==2])
+```
+```{r}
+wday(head(dis[wday(index(dis))==2]), label=T)
+```
+```{r}
+wday(head(dis[wday(index(dis))==6]), label=T)
+```
+```{r}
+dis.ret <- diff(log(dis))
+
+head(dis.ret[wday(index(dis.ret))==2])
+```
+```{r}
+head(merge(dis, dis.ret))
+```
+```{r}
+head(merge(dis, dis.ret)[wday(merge(dis, dis.ret))==2])
+```
+```{r}
+hist(dis.ret, breaks=100, main="DIS's Cont. Comp. Returns", xlab="Returns")
+
+#Returns are generally concentrated between -0.05 and 0.05, meaning small returns are achieved most of the time.
+#The distribution appears symmetrical with a peak near the center, indicating that returns are generally around 0.
+#Extreme outliers (e.g. around -0.15 or 0.15) are relatively rare, meaning large losses or gains do not occur very often.
+```
+```{r}
+hist(dis.ret[wday(index(dis.ret))==2], breaks=50, main="dis's Monday Cont. Comp. Returns", xlab="Returns")
+#Returns are generally concentrated between -0.05 and 0.05, meaning Mondays are mostly small returns.
+#This suggests that Monday's returns for DIS stock were generally stable, exhibiting smaller, more regular movements rather than large swings.
+```
+```{r}
+hist(dis.ret[wday(index(dis.ret))==6], breaks=50, main="dis's Friday Cont. Comp. Returns", xlab="Returns")
+#The distribution is symmetrical and has a pronounced peak in the center (around 0), indicating that returns are generally neutral or slightly positive/negative.
+#This suggests that DIS stock's Friday returns have been generally stable, exhibiting smaller, more regular movements rather than large swings.
+```
+```{r}
+plot(ecdf(as.vector(dis.ret[wday(index(dis.ret))==6])), main="Friday ECDF")
+#The distribution appears symmetrical because the curve rises evenly around 0.
+```
+```{r}
+plot(ecdf(as.vector(dis.ret[wday(index(dis.ret))==6])), main="ECDF Distributions")
+lines(ecdf(as.vector(dis.ret[wday(index(dis.ret))==2])), col="blue")
+#Extreme outliers (like -0.10 or 0.15) are rare; the slope slows down considerably at either end of the chart, indicating little if any major losses or gains.
+#
+```
+```{r}
+mean.ret <- cbind(
+mean(dis.ret[wday(index(dis.ret))==2], na.rm=T),
+mean(dis.ret[wday(index(dis.ret))==3], na.rm=T),
+mean(dis.ret[wday(index(dis.ret))==4], na.rm=T),
+mean(dis.ret[wday(index(dis.ret))==5], na.rm=T),
+mean(dis.ret[wday(index(dis.ret))==6], na.rm=T))
+colnames(mean.ret) <- levels(wday(index(dis.ret), label=T))[2:6]
+rownames(mean.ret) <- "Mean Returns"
+
+# Lets see up to 6 digits..
+round(mean.ret, 6)
+```
+```{r}
+plot(dis[wday(index(dis))==2], main="DIS Mondays Prices", ylab="$")
+#Starting from around 50 USD, it reaches around 120 USD in 2015.
+#Between 2015 and 2020, there were serious fluctuations in the 100-150 USD band.
+#There is a sharp decline in 2020 (probably due to COVID-19), with prices falling to around 90 USD.
+#Towards 2025, prices are hovering around 100 USD, with a generally long-term uptrend, but with significant volatility in recent years.
+```
+```{r}
+plot(as.zoo(dis[wday(index(dis))==2]), main="DIS Mondays Prices", ylab="$", xlab="Date")
+```
+```{r}
+dis.m <- Ad(to.monthly(DIS))
+dis.mret <- diff(log(dis.m))
+round(mean(dis.mret, na.rm=T), 6)
+```
+```{r}
+round((1+mean(dis.mret, na.rm=T))^12-1, 6)
+```
+```{r}
+round(mean(diff(log(Ad(to.yearly(DIS)))), na.rm=T), 6)
+```
+```{r}
+head(dis.mret[month(index(dis.mret))==1], na.rm=T)
+```
+```{r}
+# Mean January Returns.. 
+mean(dis.mret[month(index(dis.mret))==1], na.rm=T)
+```
+```{r}
+# February..
+mean(dis.mret[month(index(dis.mret))==2], na.rm=T)
+```
+```{r}
+# All January returns since 1972
+barplot(dis.mret[month(index(dis.mret))==1])
+#The 2008-2009 period (probably due to the global financial crisis) shows significant negative returns, especially large declines around -0.15.
+#There are also notable negative returns in 2015-2016 and 2020; the decline in 2020 is likely related to the COVID-19 impact.
+#In general, returns have been quite volatile over time, with large losses in some periods (e.g. 2009, 2020) and modest gains in other periods.
+```
+```{r}
+# An example.. Compare Mondays and Tuesdays..
+ks.test(dis.ret[wday(index(dis.ret))==2], dis.ret[wday(index(dis.ret))==3])
+```
+```{r}
+# Compare Mondays and Fridays..
+ks.test(dis.ret[wday(index(dis.ret))==2], dis.ret[wday(index(dis.ret))==6])
+
+```
+```{r}
+# Let's obtain all.. Create 5*5 matrix.. We use only upper-triangle
+# See the structure of ks.test result first..
+p.matr <- matrix(rep(0, 5*5), nrow=5)
+colnames(p.matr) <- rownames(p.matr) <- levels(wday(index(dis.ret), label=T))[2:6]
+
+for (i in 2:6){
+  for (j in i:6){
+    p.matr[i-1,j-1] <- suppressWarnings(  
+      ks.test(as.numeric(dis.ret[wday(index(dis.ret))==i]), y = 
+                as.numeric(dis.ret[wday(index(dis.ret))==j]))$p.value)
+  }
+}
+
+# p-vales matrix of  Kolmogorov-Smirnov Tests
+round(p.matr, 3)
+```
+
+```{r}
+# Let's obtain all months returns.. Create 12*12 matrix.. We use only upper-triangle
+# See the structure of ks.test result first..
+pm.matr <- matrix(rep(0, 12*12), nrow=12)
+colnames(pm.matr) <- rownames(pm.matr) <- levels(month(index(dis.mret), label=T))
+
+for (i in 1:12){
+  for (j in i:12){
+    pm.matr[i,j] <- ks.test(as.numeric(dis.mret[month(index(dis.mret))==i]), as.numeric(dis.mret[month(index(dis.mret))==j]))$p.value
+  }
+}
+
+# p-vales matrix of  Kolmogorov-Smirnov Tests
+round(pm.matr, 3)
+```
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
